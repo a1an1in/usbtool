@@ -17,7 +17,6 @@
 const struct usbi_os_backend * const usbi_backend = &linux_usbfs_backend;
 const struct libusb_version libusb_version_internal = {
 	LIBUSB_MAJOR, LIBUSB_MINOR, LIBUSB_MICRO, LIBUSB_NANO, LIBUSB_RC,
-	LIBUSB_DESCRIBE
 };
 
 struct libusb_context *usbi_default_context = NULL;
@@ -293,8 +292,7 @@ int  libusb_get_max_iso_packet_size(libusb_device *dev,
 	return r;
 }
 
-DEFAULT_VISIBILITY
-libusb_device * LIBUSB_CALL libusb_ref_device(libusb_device *dev)
+libusb_device *libusb_ref_device(libusb_device *dev)
 {
 	usbi_mutex_lock(&dev->lock);
 	dev->refcnt++;

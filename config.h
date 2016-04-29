@@ -58,18 +58,9 @@
 /* Define to 1 if your C compiler doesn't accept -c and -o together. */
 #undef NO_MINUS_C_MINUS_O
 
-/* Darwin backend */
-#undef OS_DARWIN
 
 /* Linux backend */
 #undef OS_LINUX
-
-/* OpenBSD backend */
-#undef OS_OPENBSD
-
-/* Windows backend */
-#undef OS_WINDOWS
-
 /* Name of package */
 #undef PACKAGE
 

@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <sys/types.h>
-#include "libusb.h"
+#include "libusbi.h"
 
 static void print_devs(libusb_device **devs)
 {

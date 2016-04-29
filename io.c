@@ -3,19 +3,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
+#include <sys/timerfd.h>
 #include <time.h>
 
 #include "config.h"
-
-
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
-#ifdef USBI_TIMERFD_AVAILABLE
-#include <sys/timerfd.h>
-#endif
-
 #include "libusbi.h"
 
 int usbi_io_init(struct libusb_context *ctx)
@@ -600,10 +592,10 @@ static int handle_events(struct libusb_context *ctx, struct timeval *tv)
 {
 	int r;
 	struct usbi_pollfd *ipollfd;
-	POLL_NFDS_TYPE nfds = 0;
 	struct pollfd *fds;
 	int i = -1;
 	int timeout_ms;
+	int nfds = 0;
 
 	usbi_mutex_lock(&ctx->pollfds_lock);
 	list_for_each_entry(ipollfd, &ctx->pollfds, list, struct usbi_pollfd)
@@ -689,7 +681,7 @@ static int handle_events(struct libusb_context *ctx, struct timeval *tv)
 	}
 #endif
 
-	r = usbi_backend->handle_events(ctx, fds, nfds, r);
+	r = usbi_backend->handle_events(ctx, fds, r);
 	if (r)
 		usbi_err(ctx, "backend handle_events failed with error %d", r);
 

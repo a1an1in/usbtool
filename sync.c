@@ -8,7 +8,7 @@
 #include "libusbi.h"
 
 
-static void LIBUSB_CALL ctrl_transfer_cb(struct libusb_transfer *transfer)
+static void  ctrl_transfer_cb(struct libusb_transfer *transfer)
 {
 	int *completed = transfer->user_data;
 	*completed = 1;
@@ -17,7 +17,7 @@ static void LIBUSB_CALL ctrl_transfer_cb(struct libusb_transfer *transfer)
 }
 
 
-int API_EXPORTED libusb_control_transfer(libusb_device_handle *dev_handle,
+int  libusb_control_transfer(libusb_device_handle *dev_handle,
 	uint8_t bmRequestType, uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
 	unsigned char *data, uint16_t wLength, unsigned int timeout)
 {
@@ -93,7 +93,7 @@ int API_EXPORTED libusb_control_transfer(libusb_device_handle *dev_handle,
 	return r;
 }
 
-static void LIBUSB_CALL bulk_transfer_cb(struct libusb_transfer *transfer)
+static void  bulk_transfer_cb(struct libusb_transfer *transfer)
 {
 	int *completed = transfer->user_data;
 	*completed = 1;
@@ -164,7 +164,7 @@ static int do_sync_bulk_transfer(struct libusb_device_handle *dev_handle,
 }
 
 
-int API_EXPORTED libusb_bulk_transfer(struct libusb_device_handle *dev_handle,
+int  libusb_bulk_transfer(struct libusb_device_handle *dev_handle,
 	unsigned char endpoint, unsigned char *data, int length, int *transferred,
 	unsigned int timeout)
 {
@@ -173,7 +173,7 @@ int API_EXPORTED libusb_bulk_transfer(struct libusb_device_handle *dev_handle,
 }
 
 
-int API_EXPORTED libusb_interrupt_transfer(
+int  libusb_interrupt_transfer(
 	struct libusb_device_handle *dev_handle, unsigned char endpoint,
 	unsigned char *data, int length, int *transferred, unsigned int timeout)
 {
