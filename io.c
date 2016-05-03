@@ -23,7 +23,6 @@ int usbi_io_init(struct libusb_context *ctx)
 	list_init(&ctx->flying_transfers);
 	list_init(&ctx->pollfds);
 
-	/* FIXME should use an eventfd on kernels that support it */
 	r = usbi_pipe(ctx->ctrl_pipe);
 	if (r < 0) {
 		r = LIBUSB_ERROR_OTHER;
@@ -230,8 +229,6 @@ int  libusb_submit_transfer(struct libusb_transfer *transfer)
 		if (r < 0)
 			r = LIBUSB_ERROR_OTHER;
 	}
-#else
-	(void)first;
 #endif
 
 out:

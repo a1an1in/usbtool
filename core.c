@@ -1,4 +1,3 @@
-
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -37,22 +36,18 @@ static struct discovered_devs *discovered_devs_alloc(void)
 	return ret;
 }
 
-/* append a device to the discovered devices collection. may realloc itself,
- * returning new discdevs. returns NULL on realloc failure. */
 struct discovered_devs *discovered_devs_append(
 	struct discovered_devs *discdevs, struct libusb_device *dev)
 {
 	size_t len = discdevs->len;
 	size_t capacity;
 
-	/* if there is space, just append the device */
 	if (len < discdevs->capacity) {
 		discdevs->devices[len] = libusb_ref_device(dev);
 		discdevs->len++;
 		return discdevs;
 	}
 
-	/* exceeded capacity, need to grow */
 	usbi_dbg("need to increase capacity");
 	capacity = discdevs->capacity + DISCOVERED_DEVICES_SIZE_STEP;
 	discdevs = realloc(discdevs,
@@ -170,7 +165,7 @@ ssize_t  libusb_get_device_list(libusb_context *ctx,
 		goto out;
 	}
 
-	ret[len] = NULL;
+	memset(ret, 0, sizeof(void *) * (len + 1));
 	for (i = 0; i < len; i++) {
 		struct libusb_device *dev = discdevs->devices[i];
 		ret[i] = libusb_ref_device(dev);
@@ -326,10 +321,6 @@ void  libusb_unref_device(libusb_device *dev)
 	}
 }
 
-/*
- * Interrupt the iteration of the event handling thread, so that it picks
- * up the new fd.
- */
 void usbi_fd_notification(struct libusb_context *ctx)
 {
 	unsigned char dummy = 1;
@@ -825,77 +816,6 @@ int  libusb_has_capability(uint32_t capability)
 		return 1;
 	}
 	return 0;
-}
-
-
-void usbi_log_v(struct libusb_context *ctx, enum usbi_log_level level,
-	const char *function, const char *format, va_list args)
-{
-	FILE *stream = stdout;
-	const char *prefix;
-	struct timeval now;
-	static struct timeval first = { 0, 0 };
-
-#ifndef ENABLE_DEBUG_LOGGING
-	USBI_GET_CONTEXT(ctx);
-	if (!ctx->debug)
-		return;
-	if (level == LOG_LEVEL_WARNING && ctx->debug < 2)
-		return;
-	if (level == LOG_LEVEL_INFO && ctx->debug < 3)
-		return;
-#endif
-
-	usbi_gettimeofday(&now, NULL);
-	if (!first.tv_sec) {
-		first.tv_sec = now.tv_sec;
-		first.tv_usec = now.tv_usec;
-	}
-	if (now.tv_usec < first.tv_usec) {
-		now.tv_sec--;
-		now.tv_usec += 1000000;
-	}
-	now.tv_sec -= first.tv_sec;
-	now.tv_usec -= first.tv_usec;
-
-	switch (level) {
-	case LOG_LEVEL_INFO:
-		prefix = "info";
-		break;
-	case LOG_LEVEL_WARNING:
-		stream = stderr;
-		prefix = "warning";
-		break;
-	case LOG_LEVEL_ERROR:
-		stream = stderr;
-		prefix = "error";
-		break;
-	case LOG_LEVEL_DEBUG:
-		stream = stderr;
-		prefix = "debug";
-		break;
-	default:
-		stream = stderr;
-		prefix = "unknown";
-		break;
-	}
-
-	fprintf(stream, "libusb: %d.%06d %s [%s] ",
-		(int)now.tv_sec, (int)now.tv_usec, prefix, function);
-
-	vfprintf(stream, format, args);
-
-	fprintf(stream, "\n");
-}
-
-void usbi_log(struct libusb_context *ctx, enum usbi_log_level level,
-	const char *function, const char *format, ...)
-{
-	va_list args;
-
-	va_start (args, format);
-	usbi_log_v(ctx, level, function, format, args);
-	va_end (args);
 }
 
 const char * libusb_error_name(int error_code)
