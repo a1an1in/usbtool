@@ -89,7 +89,7 @@ static inline void list_del(struct list_head *entry)
 
 #define TIMESPEC_IS_SET(ts) ((ts)->tv_sec != 0 || (ts)->tv_nsec != 0)
 
-enum usbi_log_level {
+enum usb_log_level {
 	LOG_LEVEL_DEBUG,
 	LOG_LEVEL_INFO,
 	LOG_LEVEL_WARNING,
@@ -351,22 +351,22 @@ typedef struct libusb_context {
 	int ctrl_pipe[2];
 
 	struct list_head usb_devs;
-	usbi_mutex_t usb_devs_lock;
+	usb_mutex_t usb_devs_lock;
 	struct list_head open_devs;
-	usbi_mutex_t open_devs_lock;
+	usb_mutex_t open_devs_lock;
 	struct list_head flying_transfers;
-	usbi_mutex_t flying_transfers_lock;
+	usb_mutex_t flying_transfers_lock;
 	struct list_head pollfds;
-	usbi_mutex_t pollfds_lock;
+	usb_mutex_t pollfds_lock;
 	unsigned int pollfd_modify;
-	usbi_mutex_t pollfd_modify_lock;
+	usb_mutex_t pollfd_modify_lock;
 	libusb_pollfd_added_cb fd_added_cb;
 	libusb_pollfd_removed_cb fd_removed_cb;
 	void *fd_cb_user_data;
-	usbi_mutex_t events_lock;
+	usb_mutex_t events_lock;
 	int event_handler_active;
-	usbi_mutex_t event_waiters_lock;
-	usbi_cond_t event_waiters_cond;
+	usb_mutex_t event_waiters_lock;
+	usb_cond_t event_waiters_cond;
 
 #ifdef USBI_TIMERFD_AVAILABLE
 	int timerfd;
@@ -374,7 +374,7 @@ typedef struct libusb_context {
 }libusb_context;
 
 typedef struct libusb_device {
-	usbi_mutex_t lock;
+	usb_mutex_t lock;
 	int refcnt;
 
 	struct libusb_context *ctx;
@@ -390,7 +390,7 @@ typedef struct libusb_device {
 }libusb_device;
 
 typedef struct libusb_device_handle {
-	usbi_mutex_t lock;
+	usb_mutex_t lock;
 	unsigned long claimed_interfaces;
 
 	struct list_head list;
@@ -446,75 +446,75 @@ struct libusb_transfer {
 enum libusb_capability {
 	LIBUSB_CAP_HAS_CAPABILITY = 0,
 };
-void usbi_log(struct libusb_context *ctx, enum usbi_log_level level,
+void usb_log(struct libusb_context *ctx, enum usb_log_level level,
 	const char *function, const char *format, ...);
 
-void usbi_log_v(struct libusb_context *ctx, enum usbi_log_level level,
+void usb_log_v(struct libusb_context *ctx, enum usb_log_level level,
 	const char *function, const char *format, va_list args);
 
 #if !defined(_MSC_VER) || _MSC_VER >= 1400
 
 #ifdef ENABLE_LOGGING
-#define _usbi_log(ctx, level, ...) usbi_log(ctx, level, __FUNCTION__, __VA_ARGS__)
+#define _usb_log(ctx, level, ...) usb_log(ctx, level, __FUNCTION__, __VA_ARGS__)
 #else
-#define _usbi_log(ctx, level, ...) do { (void)(ctx); } while(0)
+#define _usb_log(ctx, level, ...) do { (void)(ctx); } while(0)
 #endif
 
 #ifdef ENABLE_DEBUG_LOGGING
-#define usbi_dbg(...) _usbi_log(NULL, LOG_LEVEL_DEBUG, __VA_ARGS__)
+#define usb_dbg(...) _usb_log(NULL, LOG_LEVEL_DEBUG, __VA_ARGS__)
 #else
-#define usbi_dbg(...) do {} while(0)
+#define usb_dbg(...) do {} while(0)
 #endif
 
-#define usbi_info(ctx, ...) _usbi_log(ctx, LOG_LEVEL_INFO, __VA_ARGS__)
-#define usbi_warn(ctx, ...) _usbi_log(ctx, LOG_LEVEL_WARNING, __VA_ARGS__)
-#define usbi_err(ctx, ...) _usbi_log(ctx, LOG_LEVEL_ERROR, __VA_ARGS__)
+#define usb_info(ctx, ...) _usb_log(ctx, LOG_LEVEL_INFO, __VA_ARGS__)
+#define usb_warn(ctx, ...) _usb_log(ctx, LOG_LEVEL_WARNING, __VA_ARGS__)
+#define usb_err(ctx, ...) _usb_log(ctx, LOG_LEVEL_ERROR, __VA_ARGS__)
 
 #else /* !defined(_MSC_VER) || _MSC_VER >= 1400 */
 
 
-static inline void usbi_info(struct libusb_context *ctx, const char *fmt, ...)
+static inline void usb_info(struct libusb_context *ctx, const char *fmt, ...)
 {
 #ifdef ENABLE_LOGGING
 	va_list args;
 	va_start(args, fmt);
-	usbi_log_v(ctx, LOG_LEVEL_INFO, "", fmt, args);
+	usb_log_v(ctx, LOG_LEVEL_INFO, "", fmt, args);
 	va_end(args);
 #else
 	(void)ctx;
 #endif
 }
 
-static inline void usbi_warn(struct libusb_context *ctx, const char *fmt, ...)
+static inline void usb_warn(struct libusb_context *ctx, const char *fmt, ...)
 {
 #ifdef ENABLE_LOGGING
 	va_list args;
 	va_start(args, fmt);
-	usbi_log_v(ctx, LOG_LEVEL_WARNING, "", fmt, args);
+	usb_log_v(ctx, LOG_LEVEL_WARNING, "", fmt, args);
 	va_end(args);
 #else
 	(void)ctx;
 #endif
 }
 
-static inline void usbi_err(struct libusb_context *ctx, const char *fmt, ...)
+static inline void usb_err(struct libusb_context *ctx, const char *fmt, ...)
 {
 #ifdef ENABLE_LOGGING
 	va_list args;
 	va_start(args, fmt);
-	usbi_log_v(ctx, LOG_LEVEL_ERROR, "", fmt, args);
+	usb_log_v(ctx, LOG_LEVEL_ERROR, "", fmt, args);
 	va_end(args);
 #else
 	(void)ctx;
 #endif
 }
 
-static inline void usbi_dbg(const char *fmt, ...)
+static inline void usb_dbg(const char *fmt, ...)
 {
 #ifdef ENABLE_DEBUG_LOGGING
 	va_list args;
 	va_start(args, fmt);
-	usbi_log_v(NULL, LOG_LEVEL_DEBUG, "", fmt, args);
+	usb_log_v(NULL, LOG_LEVEL_DEBUG, "", fmt, args);
 	va_end(args);
 #else
 	(void)fmt;
@@ -523,7 +523,7 @@ static inline void usbi_dbg(const char *fmt, ...)
 
 #endif /* !defined(_MSC_VER) || _MSC_VER >= 1400 */
 
-#define USBI_GET_CONTEXT(ctx) if (!(ctx)) (ctx) = usbi_default_context
+#define USBI_GET_CONTEXT(ctx) if (!(ctx)) (ctx) = usb_default_context
 #define DEVICE_CTX(dev) ((dev)->ctx)
 #define HANDLE_CTX(handle) (DEVICE_CTX((handle)->dev))
 #define TRANSFER_CTX(transfer) (HANDLE_CTX((transfer)->dev_handle))
@@ -535,28 +535,28 @@ static inline void usbi_dbg(const char *fmt, ...)
 #define IS_XFERIN(xfer) (0 != ((xfer)->endpoint & LIBUSB_ENDPOINT_IN))
 #define IS_XFEROUT(xfer) (!IS_XFERIN(xfer))
 
-#define usbi_gettimeofday(tv, tz) gettimeofday((tv), (tz))
+#define usb_gettimeofday(tv, tz) gettimeofday((tv), (tz))
 #define HAVE_USBI_GETTIMEOFDAY
 
-extern struct libusb_context *usbi_default_context;
+extern struct libusb_context *usb_default_context;
 
 
 #ifdef USBI_TIMERFD_AVAILABLE
-#define usbi_using_timerfd(ctx) ((ctx)->timerfd >= 0)
+#define usb_using_timerfd(ctx) ((ctx)->timerfd >= 0)
 #else
-#define usbi_using_timerfd(ctx) (0)
+#define usb_using_timerfd(ctx) (0)
 #endif
 
-struct usbi_transfer {
+struct usb_transfer {
 	int num_iso_packets;
 	struct list_head list;
 	struct timeval timeout;
 	int transferred;
 	uint8_t flags;
-	usbi_mutex_t lock;
+	usb_mutex_t lock;
 };
 
-enum usbi_transfer_flags {
+enum usb_transfer_flags {
 	USBI_TRANSFER_TIMED_OUT = 1 << 0,
 	USBI_TRANSFER_OS_HANDLES_TIMEOUT = 1 << 1,
 	USBI_TRANSFER_CANCELLING = 1 << 2,
@@ -565,14 +565,14 @@ enum usbi_transfer_flags {
 
 #define USBI_TRANSFER_TO_LIBUSB_TRANSFER(transfer) \
 	((struct libusb_transfer *)(((unsigned char *)(transfer)) \
-		+ sizeof(struct usbi_transfer)))
+		+ sizeof(struct usb_transfer)))
 #define LIBUSB_TRANSFER_TO_USBI_TRANSFER(transfer) \
-	((struct usbi_transfer *)(((unsigned char *)(transfer)) \
-		- sizeof(struct usbi_transfer)))
+	((struct usb_transfer *)(((unsigned char *)(transfer)) \
+		- sizeof(struct usb_transfer)))
 
-static inline void *usbi_transfer_get_os_priv(struct usbi_transfer *transfer)
+static inline void *usb_transfer_get_os_priv(struct usb_transfer *transfer)
 {
-	return ((unsigned char *)transfer) + sizeof(struct usbi_transfer)
+	return ((unsigned char *)transfer) + sizeof(struct usb_transfer)
 		+ sizeof(struct libusb_transfer)
 		+ (transfer->num_iso_packets
 			* sizeof(struct libusb_iso_packet_descriptor));
@@ -588,35 +588,35 @@ struct usb_descriptor_header {
 
 /* shared data and functions */
 
-int usbi_io_init(struct libusb_context *ctx);
-void usbi_io_exit(struct libusb_context *ctx);
+int usb_io_init(struct libusb_context *ctx);
+void usb_io_exit(struct libusb_context *ctx);
 
-struct libusb_device *usbi_alloc_device(struct libusb_context *ctx,
+struct libusb_device *usb_alloc_device(struct libusb_context *ctx,
 	unsigned long session_id);
-struct libusb_device *usbi_get_device_by_session_id(struct libusb_context *ctx,
+struct libusb_device *usb_get_device_by_session_id(struct libusb_context *ctx,
 	unsigned long session_id);
-int usbi_sanitize_device(struct libusb_device *dev);
-void usbi_handle_disconnect(struct libusb_device_handle *handle);
+int usb_sanitize_device(struct libusb_device *dev);
+void usb_handle_disconnect(struct libusb_device_handle *handle);
 
-int usbi_handle_transfer_completion(struct usbi_transfer *itransfer,
+int usb_handle_transfer_completion(struct usb_transfer *itransfer,
 	enum libusb_transfer_status status);
-int usbi_handle_transfer_cancellation(struct usbi_transfer *transfer);
+int usb_handle_transfer_cancellation(struct usb_transfer *transfer);
 
-int usbi_parse_descriptor(unsigned char *source, const char *descriptor,
+int usb_parse_descriptor(unsigned char *source, const char *descriptor,
 	void *dest, int host_endian);
-int usbi_get_config_index_by_value(struct libusb_device *dev,
+int usb_get_config_index_by_value(struct libusb_device *dev,
 	uint8_t bConfigurationValue, int *idx);
 
 /* polling */
 
-struct usbi_pollfd {
+struct usb_pollfd {
 	struct libusb_pollfd pollfd;
 	struct list_head list;
 };
 
-int usbi_add_pollfd(struct libusb_context *ctx, int fd, short events);
-void usbi_remove_pollfd(struct libusb_context *ctx, int fd);
-void usbi_fd_notification(struct libusb_context *ctx);
+int usb_add_pollfd(struct libusb_context *ctx, int fd, short events);
+void usb_remove_pollfd(struct libusb_context *ctx, int fd);
+void usb_fd_notification(struct libusb_context *ctx);
 
 /* device discovery */
 
@@ -638,7 +638,7 @@ struct discovered_devs *discovered_devs_append(
 
 /* This is the interface that OS backends need to implement.
  * All fields are mandatory, except ones explicitly noted as optional. */
-struct usbi_os_backend {
+struct usb_os_backend {
 	/* A human-readable name for your backend, e.g. "Linux usbfs" */
 	const char *name;
 	int (*init)(struct libusb_context *ctx);
@@ -674,14 +674,14 @@ struct usbi_os_backend {
 
 	void (*destroy_device)(struct libusb_device *dev);
 
-	int (*submit_transfer)(struct usbi_transfer *itransfer);
+	int (*submit_transfer)(struct usb_transfer *itransfer);
 
-	int (*cancel_transfer)(struct usbi_transfer *itransfer);
+	int (*cancel_transfer)(struct usb_transfer *itransfer);
 
-	void (*clear_transfer_priv)(struct usbi_transfer *itransfer);
+	void (*clear_transfer_priv)(struct usb_transfer *itransfer);
 
 	int (*handle_events)(struct libusb_context *ctx,
-		struct pollfd *fds, int num_ready);
+		struct pollfd *fds, int cnt, int num_ready);
 
 	int (*clock_gettime)(int clkid, struct timespec *tp);
 
@@ -695,8 +695,8 @@ struct usbi_os_backend {
 	size_t add_iso_packet_size;
 };
 
-extern const struct usbi_os_backend * const usbi_backend;
-extern const struct usbi_os_backend linux_usbfs_backend;
+extern const struct usb_os_backend * const usb_backend;
+extern const struct usb_os_backend linux_usbfs_backend;
 int  libusb_init(libusb_context **ctx);
 void  libusb_exit(libusb_context *ctx);
 void  libusb_set_debug(libusb_context *ctx, int level);
@@ -948,6 +948,8 @@ int  libusb_interrupt_transfer(libusb_device_handle *dev_handle,
 
 int  libusb_get_string_descriptor_ascii(libusb_device_handle *dev,
 	uint8_t desc_index, unsigned char *data, int length);
+
+int show_device_info(uint16_t vendor_id, uint16_t product_id);
 
 static inline int libusb_get_descriptor(libusb_device_handle *dev,
 	uint8_t desc_type, uint8_t desc_index, unsigned char *data, int length)

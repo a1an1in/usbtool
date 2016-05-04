@@ -4,14 +4,11 @@ source := $(notdir $(shell find . -name '*.c'))
 objects := $(patsubst %.c,%.o,$(source))
 libusb:$(objects)
 	$(CC)  $(LD_FLAGS)  $^  -o $@ 
+	ctags -R .
+	cscope -Rqb 
 
 %.o:%.c
 	$(CC) -c $(CFLAGS) $(INCLUDE) $< 
-
-tags:
-	ctags -R .
-cscope:
-	cscope -Rqb 
 
 .PHONY : clean
 clean:

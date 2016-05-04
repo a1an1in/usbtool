@@ -11,8 +11,8 @@
 #include <sys/time.h>
 #endif
 
-#include "libusbi.h"
-void usbi_log_v(struct libusb_context *ctx, enum usbi_log_level level,
+#include "libusb.h"
+void usb_log_v(struct libusb_context *ctx, enum usb_log_level level,
 	const char *function, const char *format, va_list args)
 {
 	FILE *stream = stdout;
@@ -30,7 +30,7 @@ void usbi_log_v(struct libusb_context *ctx, enum usbi_log_level level,
 		return;
 #endif
 
-	usbi_gettimeofday(&now, NULL);
+	usb_gettimeofday(&now, NULL);
 	if (!first.tv_sec) {
 		first.tv_sec = now.tv_sec;
 		first.tv_usec = now.tv_usec;
@@ -72,12 +72,12 @@ void usbi_log_v(struct libusb_context *ctx, enum usbi_log_level level,
 	fprintf(stream, "\n");
 }
 
-void usbi_log(struct libusb_context *ctx, enum usbi_log_level level,
+void usb_log(struct libusb_context *ctx, enum usb_log_level level,
 	const char *function, const char *format, ...)
 {
 	va_list args;
 
 	va_start (args, format);
-	usbi_log_v(ctx, level, function, format, args);
+	usb_log_v(ctx, level, function, format, args);
 	va_end (args);
 }

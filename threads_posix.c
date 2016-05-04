@@ -1,6 +1,6 @@
 #include "threads_posix.h"
 
-int usbi_mutex_init_recursive(pthread_mutex_t *mutex, pthread_mutexattr_t *attr)
+int usb_mutex_init_recursive(pthread_mutex_t *mutex, pthread_mutexattr_t *attr)
 {
 	int err;
 	pthread_mutexattr_t stack_attr;

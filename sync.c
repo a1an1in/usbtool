@@ -5,14 +5,14 @@
 #include <string.h>
 
 #include "config.h"
-#include "libusbi.h"
+#include "libusb.h"
 
 
 static void  ctrl_transfer_cb(struct libusb_transfer *transfer)
 {
 	int *completed = transfer->user_data;
 	*completed = 1;
-	usbi_dbg("actual_length=%d", transfer->actual_length);
+	usb_dbg("actual_length=%d", transfer->actual_length);
 	/* caller interprets result and frees transfer */
 }
 
@@ -84,7 +84,7 @@ int  libusb_control_transfer(libusb_device_handle *dev_handle,
 		r = LIBUSB_ERROR_OVERFLOW;
 		break;
 	default:
-		usbi_warn(HANDLE_CTX(dev_handle),
+		usb_warn(HANDLE_CTX(dev_handle),
 			"unrecognised status code %d", transfer->status);
 		r = LIBUSB_ERROR_OTHER;
 	}
@@ -97,7 +97,7 @@ static void  bulk_transfer_cb(struct libusb_transfer *transfer)
 {
 	int *completed = transfer->user_data;
 	*completed = 1;
-	usbi_dbg("actual_length=%d", transfer->actual_length);
+	usb_dbg("actual_length=%d", transfer->actual_length);
 	/* caller interprets results and frees transfer */
 }
 
@@ -154,7 +154,7 @@ static int do_sync_bulk_transfer(struct libusb_device_handle *dev_handle,
 		r = LIBUSB_ERROR_NO_DEVICE;
 		break;
 	default:
-		usbi_warn(HANDLE_CTX(dev_handle),
+		usb_warn(HANDLE_CTX(dev_handle),
 			"unrecognised status code %d", transfer->status);
 		r = LIBUSB_ERROR_OTHER;
 	}
