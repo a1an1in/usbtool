@@ -630,32 +630,58 @@ int  libusb_get_string_descriptor_ascii(libusb_device_handle *dev,
 	return di;
 }
 
-static void show_interface(const struct libusb_interface *interface)
+void show_endpoint(const struct libusb_endpoint_descriptor *endpoint)
 {
-	
+	printf("  Endpoint information:\n");
+	printf("  bLength : %d\n", endpoint->bLength);
+	printf("  bDescriptorType : %d\n", endpoint->bDescriptorType);
+	printf("  bEndpointAddress : 0x%x\n", endpoint->bEndpointAddress);
+	printf("  bmAttributes : 0x%x\n", endpoint->bmAttributes);
+	printf("  wMaxPacketSize : %d\n", endpoint->wMaxPacketSize);
+	printf("  bInterval : %d\n", endpoint->bInterval);
+	printf("  bRefresh : %d\n", endpoint->bRefresh);
+	printf("  bSynchAddress : %d\n", endpoint->bSynchAddress);
 }
 
-static void show_config(struct libusb_config_descriptor *config)
+static void show_interface(const struct libusb_interface *interface)
 {
 	int i;
 
-	printf("Configuration information: \n");
-	printf(" bLength: %d\n", config->bLength);
-	printf(" bDescriptorType: %d\n", config->bDescriptorType);
-	printf(" wTotalLength: %d\n", config->wTotalLength);
-	printf(" bNumInterfaces: %d\n", config->bNumInterfaces);
-	printf(" bConfigurationValue: %d\n", config->bConfigurationValue);
-	printf(" iConfiguration: %d\n", config->iConfiguration);
-	printf(" bmAttributes: %d\n", config->bmAttributes);
-	printf(" MaxPower: %d\n", config->MaxPower);
+	printf(" Interface information:\n");
+	printf(" bLength: %d\n ", interface->altsetting->bLength);
+	printf(" bDescriptorType :%d\n", interface->altsetting->bDescriptorType);
+	printf(" bAlternateSetting:%d\n ", interface->altsetting->bAlternateSetting);
+	printf(" bNumEndpoints : %d\n", interface->altsetting->bNumEndpoints);
+	printf(" bInterfaceClass : %d\n", interface->altsetting->bInterfaceClass);
+	printf(" bInterfaceSubClass : %d\n", interface->altsetting->bInterfaceSubClass);
+	printf(" bInterfaceSubClass : %d\n", interface->altsetting->bInterfaceSubClass);
+	printf(" bInterfaceProtocol : %d\n", interface->altsetting->bInterfaceProtocol);
+	printf(" iInterface : %d\n", interface->altsetting->iInterface);
+
+	for (i = 0; i < interface->altsetting->bNumEndpoints; i++)
+		show_endpoint(interface->altsetting->endpoint);
+}
+
+static void show_config(struct libusb_config_descriptor *config, int num)
+{
+	int i;
+
+	printf("Configuration information:%d\n", num);
+	printf("bLength: %d\n", config->bLength);
+	printf("bDescriptorType: %d\n", config->bDescriptorType);
+	printf("wTotalLength: %d\n", config->wTotalLength);
+	printf("bNumInterfaces: %d\n", config->bNumInterfaces);
+	printf("bConfigurationValue: %d\n", config->bConfigurationValue);
+	printf("iConfiguration: %d\n", config->iConfiguration);
+	printf("bmAttributes: %d\n", config->bmAttributes);
+	printf("MaxPower: %d\n", config->MaxPower);
 
 	for (i = 0; i < config->bNumInterfaces; i++) {
 		show_interface(config->interface);
-	}
+	} 
 }
 
-
-int show_device_info(uint16_t vendor_id, uint16_t product_id)
+int probe_device(uint16_t vendor_id, uint16_t product_id)
 {
 	struct libusb_device_handle *handle;
 	struct libusb_device_descriptor desc;
@@ -674,14 +700,49 @@ int show_device_info(uint16_t vendor_id, uint16_t product_id)
 	config_size = sizeof(struct libusb_config_descriptor *) * desc.bNumConfigurations;
 	config = (struct libusb_config_descriptor **) malloc(config_size);
 
-	ret = libusb_get_config_descriptor(handle->dev, i, config);
-	if (ret < 0) {
-		free(config);
-		return -EINVAL;
-	}
-			
 	for (i = 0; i < desc.bNumConfigurations; i++) {
-		show_config(config[i]);
+		ret = libusb_get_config_descriptor(handle->dev, i, &config[i]);
+		if (ret < 0) {
+			free(config);
+			return -EINVAL;
+		}
 	}
+	for (i = 0; i < desc.bNumConfigurations; i++) {
+		show_config(config[i], i);
+	}
+}
+
+static int _probe_all_device(libusb_device **devs)
+{
+	libusb_device *dev;
+	int i = 0;
+	while ((dev = devs[i++]) != NULL) {
+		struct libusb_device_descriptor desc;
+		int r = libusb_get_device_descriptor(dev, &desc);
+		if (r < 0) {
+			fprintf(stderr, "failed to get device descriptor");
+			return r;
+		}
+	printf("%04x:%04x (bus %d, device %d)\n",
+		desc.idVendor, desc.idProduct,
+		libusb_get_bus_number(dev), libusb_get_device_address(dev));
+
+		r = probe_device(desc.idVendor, desc.idProduct);
+		if (r == -EIO)
+			printf("Not Permitted open usb device\n");
+	}
+}
+
+int probe_all_devices()
+{
+	libusb_device **devs;
+	int cnt, r;
+
+	cnt = libusb_get_device_list(NULL, &devs);
+	if (cnt < 0)
+		return cnt;
+	 _probe_all_device(devs);
+	libusb_free_device_list(devs, 1);
+
 }
 

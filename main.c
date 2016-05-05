@@ -39,13 +39,13 @@ static int get_hwstat(unsigned char *status)
 	return 0;
 }
 
-static int read_bulk(unsigned char endpoint, unsigned char *data, int length, unsigned int timeout)
+static int read_interrupt(unsigned char endpoint, unsigned char *data, int length, unsigned int timeout)
 {
 	int r;
 	int transferred;
-	r = libusb_bulk_transfer(devh, LIBUSB_ENDPOINT_IN | endpoint, data, length, &transferred, timeout);
+	r = libusb_interrupt_transfer(devh, LIBUSB_ENDPOINT_IN | endpoint, data, length, &transferred, timeout);
 	if (r < 0) {
-		fprintf(stderr, "read hwstat error %d\n", r);
+		fprintf(stderr, "read interrput data error %d\n", r);
 		return r;
 	}
 	if ((unsigned int) r < length) {
@@ -69,13 +69,12 @@ int main(void)
 		exit(1);
 	}
 
-	//libusb_list_devices();
-	r = find_my_device(0x1d57, 0xad0a);
+	r =find_my_device(0x1d57, 0xad0a);
+	//r =probe_device(0x1d57, 0xad0a);
 	if (r < 0) {
 		fprintf(stderr, "Could not find/open device\n");
 		return r;
 	}
-	show_device_info(0x1d57, 0xad0a);
 	/*
 	r = libusb_claim_interface(devh, 0);
 	if (r < 0) {
@@ -85,7 +84,7 @@ int main(void)
 	printf("claimed interface\n");
 	*/
     get_hwstat(status);
-	read_bulk(1, data, 32, 1000);
+	//read_interrupt(1, data, 32, 1000);
 	return 0;
 }
 

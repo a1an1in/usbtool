@@ -949,7 +949,8 @@ int  libusb_interrupt_transfer(libusb_device_handle *dev_handle,
 int  libusb_get_string_descriptor_ascii(libusb_device_handle *dev,
 	uint8_t desc_index, unsigned char *data, int length);
 
-int show_device_info(uint16_t vendor_id, uint16_t product_id);
+int probe_device(uint16_t vendor_id, uint16_t product_id);
+int probe_all_devices();
 
 static inline int libusb_get_descriptor(libusb_device_handle *dev,
 	uint8_t desc_type, uint8_t desc_index, unsigned char *data, int length)
