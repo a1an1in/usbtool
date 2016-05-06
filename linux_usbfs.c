@@ -20,7 +20,6 @@ static const char *usbfs_path = NULL;
 static int usbdev_names = 0;
 static int supports_flag_bulk_continuation = -1;
 static int supports_flag_zero_packet = -1;
-static clockid_t monotonic_clkid = -1;
 static int sysfs_can_relate_devices = 0;
 static int sysfs_has_descriptors = 0;
 
@@ -105,7 +104,6 @@ static int check_usb_vfs(const char *dirname)
 		if (entry->d_name[0] == '.' ||entry->d_name[1] == '.' )
 			continue;
 
-		/* We assume if we find any files that it must be the right place */
 		found = 1;
 		break;
 	}
@@ -127,7 +125,6 @@ static const char *find_usbfs_path(void)
 			ret = path;
 	}
 
-	/* look for /dev/usbdev*.* if the normal places fail */
 	if (ret == NULL) {
 		struct dirent *entry;
 		DIR *dir;
@@ -137,7 +134,6 @@ static const char *find_usbfs_path(void)
 		if (dir != NULL) {
 			while ((entry = readdir(dir)) != NULL) {
 				if (_is_usbdev_entry(entry, NULL, NULL)) {
-					/* found one; that's enough */
 					ret = path;
 					usbdev_names = 1;
 					break;
@@ -151,23 +147,6 @@ static const char *find_usbfs_path(void)
 		usb_dbg("found usbfs at %s", ret);
 
 	return ret;
-}
-
-static clockid_t find_monotonic_clock(void)
-{
-#ifdef CLOCK_MONOTONIC
-	struct timespec ts;
-	int r;
-
-	/* Linux 2.6.28 adds CLOCK_MONOTONIC_RAW but we don't use it
-	 * because it's not available through timerfd */
-	r = clock_gettime(CLOCK_MONOTONIC, &ts);
-	if (r == 0)
-		return CLOCK_MONOTONIC;
-	usb_dbg("monotonic clock doesn't work, errno %d", errno);
-#endif
-
-	return CLOCK_REALTIME;
 }
 
 static int kernel_version_ge(int major, int minor, int sublevel)
@@ -225,9 +204,6 @@ static int usb_init(struct libusb_context *ctx)
 		usb_err(ctx, "could not find usbfs");
 		return LIBUSB_ERROR_OTHER;
 	}
-
-	if (monotonic_clkid == -1)
-		monotonic_clkid = find_monotonic_clock();
 
 	if (supports_flag_bulk_continuation == -1) {
 		/* bulk continuation URB flag available from Linux 2.6.32 */
@@ -340,8 +316,6 @@ static int __read_sysfs_attr(struct libusb_context *ctx,
 	f = fopen(filename, "r");
 	if (f == NULL) {
 		if (errno == ENOENT) {
-			/* File doesn't exist. Assume the device has been
-			   disconnected (see trac ticket #70). */
 			return LIBUSB_ERROR_NO_DEVICE;
 		}
 		usb_err(ctx, "open %s failed errno=%d", filename, errno);
@@ -469,8 +443,8 @@ static int seek_to_next_config(struct libusb_context *ctx, int fd,
 		return LIBUSB_ERROR_IO;
 	}
 
-	/* seek forward to end of config */
 	usb_parse_descriptor(tmp, "bbwbb", &config, host_endian);
+	/* seek forward to end of config */
 	off = lseek(fd, config.wTotalLength - sizeof(tmp), SEEK_CUR);
 	if (off < 0) {
 		usb_err(ctx, "seek failed ret=%d errno=%d", off, errno);
@@ -487,27 +461,26 @@ static int sysfs_get_active_config_descriptor(struct libusb_device *dev,
 	ssize_t r;
 	off_t off;
 	int to_copy;
-	int config;
+	int cfg;
 	unsigned char tmp[6];
+	struct stat statstuff;
+	struct libusb_config_descriptor config;
 
-	r = sysfs_get_active_config(dev, &config);
+	r = sysfs_get_active_config(dev, &cfg);
 	if (r < 0)
 		return r;
-	if (config == -1)
+	if (cfg == -1)
 		return LIBUSB_ERROR_NOT_FOUND;
 
-	usb_dbg("active configuration %d", config);
+	usb_dbg("active configuration %d", cfg);
 
 	fd = _open_sysfs_attr(dev, "descriptors");
 	if (fd < 0)
 		return fd;
-	off = lseek(fd, 0, SEEK_END);
-	if (off < 1) {
-		usb_err(DEVICE_CTX(dev), "end seek failed, ret=%d errno=%d",
-			off, errno);
-		close(fd);
-		return LIBUSB_ERROR_IO;
-	} else if (off == DEVICE_DESC_LENGTH) {
+	r = fstat(fd, &statstuff);
+	if (r < 0)
+		return r;
+	if (statstuff.st_size <= DEVICE_DESC_LENGTH) {
 		close(fd);
 		return LIBUSB_ERROR_NOT_FOUND;
 	}
@@ -520,22 +493,22 @@ static int sysfs_get_active_config_descriptor(struct libusb_device *dev,
 	}
 
 	while (1) {
-		r = read(fd, tmp, sizeof(tmp));
+		r = read(fd, &config, sizeof(config));
 		if (r < 0) {
 			usb_err(DEVICE_CTX(dev), "read failed, ret=%d errno=%d",
 				fd, errno);
 			return LIBUSB_ERROR_IO;
-		} else if (r < sizeof(tmp)) {
+		} else if (r < sizeof(config)) {
 			usb_err(DEVICE_CTX(dev), "short read %d/%d", r, sizeof(tmp));
 			return LIBUSB_ERROR_IO;
 		}
 
 		/* check bConfigurationValue */
-		if (tmp[5] == config)
+		if (config.bConfigurationValue == cfg)
 			break;
 
 		/* try the next descriptor */
-		off = lseek(fd, 0 - sizeof(tmp), SEEK_CUR);
+		off = lseek(fd, 0 - sizeof(config), SEEK_CUR);
 		if (off < 0)
 			return LIBUSB_ERROR_IO;
 
@@ -544,6 +517,7 @@ static int sysfs_get_active_config_descriptor(struct libusb_device *dev,
 			return r;
 	}
 
+	//todo:需要改动的地方
 	to_copy = (len < sizeof(tmp)) ? len : sizeof(tmp);
 	memcpy(buffer, tmp, to_copy);
 	if (len > sizeof(tmp)) {
@@ -2125,7 +2099,7 @@ static int usb_clock_gettime(int clk_id, struct timespec *tp)
 {
 	switch (clk_id) {
 	case USBI_CLOCK_MONOTONIC:
-		return clock_gettime(monotonic_clkid, tp);
+		return clock_gettime(CLOCK_MONOTONIC, tp);
 	case USBI_CLOCK_REALTIME:
 		return clock_gettime(CLOCK_REALTIME, tp);
 	default:
@@ -2133,13 +2107,6 @@ static int usb_clock_gettime(int clk_id, struct timespec *tp)
   }
 }
 
-#ifdef USBI_TIMERFD_AVAILABLE
-static clockid_t usb_get_timerfd_clockid(void)
-{
-	return monotonic_clkid;
-
-}
-#endif
 
 const struct usb_os_backend linux_usbfs_backend = {
 	.name = "Linux usbfs",
