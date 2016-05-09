@@ -11,7 +11,8 @@
 #include <sys/time.h>
 #endif
 
-#include "libusb.h"
+#include "common.h"
+#include "log.h"
 
 const struct usb_os_backend * const usb_backend = &linux_usbfs_backend;
 const struct libusb_version libusb_version_internal = {

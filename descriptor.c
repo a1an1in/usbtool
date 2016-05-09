@@ -4,7 +4,8 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "libusb.h"
+#include "common.h"
+#include "log.h"
 
 #define DESC_HEADER_LENGTH		2
 #define DEVICE_DESC_LENGTH		18
@@ -681,7 +682,7 @@ static void show_config(struct libusb_config_descriptor *config, int num)
 	} 
 }
 
-int probe_device(uint16_t vendor_id, uint16_t product_id)
+int libusb_show_device(uint16_t vendor_id, uint16_t product_id)
 {
 	struct libusb_device_handle *handle;
 	struct libusb_device_descriptor desc;
@@ -712,7 +713,7 @@ int probe_device(uint16_t vendor_id, uint16_t product_id)
 	}
 }
 
-static int _probe_all_device(libusb_device **devs)
+static int _libusb_show_all_device(libusb_device **devs)
 {
 	libusb_device *dev;
 	int i = 0;
@@ -727,13 +728,13 @@ static int _probe_all_device(libusb_device **devs)
 		desc.idVendor, desc.idProduct,
 		libusb_get_bus_number(dev), libusb_get_device_address(dev));
 
-		r = probe_device(desc.idVendor, desc.idProduct);
+		r = libusb_show_device(desc.idVendor, desc.idProduct);
 		if (r == -EIO)
 			printf("Not Permitted open usb device\n");
 	}
 }
 
-int probe_all_devices()
+int libusb_show_all_devices()
 {
 	libusb_device **devs;
 	int cnt, r;
@@ -741,7 +742,7 @@ int probe_all_devices()
 	cnt = libusb_get_device_list(NULL, &devs);
 	if (cnt < 0)
 		return cnt;
-	 _probe_all_device(devs);
+	 _libusb_show_all_device(devs);
 	libusb_free_device_list(devs, 1);
 
 }

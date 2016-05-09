@@ -4,14 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/time.h>
 
 #include "config.h"
+#include "common.h"
+#include "log.h"
 
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
-#include "libusb.h"
 void usb_log_v(struct libusb_context *ctx, enum usb_log_level level,
 	const char *function, const char *format, va_list args)
 {
@@ -20,7 +18,6 @@ void usb_log_v(struct libusb_context *ctx, enum usb_log_level level,
 	struct timeval now;
 	static struct timeval first = { 0, 0 };
 
-#ifndef ENABLE_DEBUG_LOGGING
 	USBI_GET_CONTEXT(ctx);
 	if (!ctx->debug)
 		return;
@@ -28,7 +25,6 @@ void usb_log_v(struct libusb_context *ctx, enum usb_log_level level,
 		return;
 	if (level == LOG_LEVEL_INFO && ctx->debug < 3)
 		return;
-#endif
 
 	usb_gettimeofday(&now, NULL);
 	if (!first.tv_sec) {

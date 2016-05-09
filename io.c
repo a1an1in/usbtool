@@ -8,7 +8,8 @@
 #include <time.h>
 
 #include "config.h"
-#include "libusb.h"
+#include "common.h"
+#include "log.h"
 
 int usb_io_init(struct libusb_context *ctx)
 {
@@ -140,7 +141,6 @@ out:
 }
 
 struct libusb_transfer *libusb_alloc_transfer(int iso_packets)
-	
 {
 	size_t os_alloc_size = usb_backend->transfer_priv_size
 		+ (usb_backend->add_iso_packet_size * iso_packets);
@@ -173,7 +173,6 @@ void  libusb_free_transfer(struct libusb_transfer *transfer)
 	free(itransfer);
 }
 
-
 int  libusb_submit_transfer(struct libusb_transfer *transfer)
 {
 	struct libusb_context *ctx = TRANSFER_CTX(transfer);
@@ -203,7 +202,6 @@ out:
 	return r;
 }
 
-
 int  libusb_cancel_transfer(struct libusb_transfer *transfer)
 {
 	struct usb_transfer *itransfer =
@@ -230,7 +228,9 @@ int  libusb_cancel_transfer(struct libusb_transfer *transfer)
 	return r;
 }
 
-
+/**
+ * usb_handle_transfer_completion:
+ */
 int usb_handle_transfer_completion(struct usb_transfer *itransfer,
 	enum libusb_transfer_status status)
 {
@@ -261,8 +261,7 @@ int usb_handle_transfer_completion(struct usb_transfer *itransfer,
 	usb_dbg("transfer %p has callback %p", transfer, transfer->callback);
 	if (transfer->callback)
 		transfer->callback(transfer);
-	/* transfer might have been freed by the above call, do not use from
-	 * this point. */
+
 	if (flags & LIBUSB_TRANSFER_FREE_TRANSFER)
 		libusb_free_transfer(transfer);
 	usb_mutex_lock(&ctx->event_waiters_lock);
@@ -274,13 +273,12 @@ int usb_handle_transfer_completion(struct usb_transfer *itransfer,
 
 int usb_handle_transfer_cancellation(struct usb_transfer *transfer)
 {
-	/* if the URB was cancelled due to timeout, report timeout to the user */
+	/*传输超时*/
 	if (transfer->flags & USBI_TRANSFER_TIMED_OUT) {
 		usb_dbg("detected timeout cancellation");
 		return usb_handle_transfer_completion(transfer, LIBUSB_TRANSFER_TIMED_OUT);
 	}
 
-	/* otherwise its a normal async cancel */
 	return usb_handle_transfer_completion(transfer, LIBUSB_TRANSFER_CANCELLED);
 }
 
@@ -400,6 +398,8 @@ int  libusb_wait_for_event(libusb_context *ctx, struct timeval *tv)
 	return (r == ETIMEDOUT);
 }
 
+/**
+ * handle_timeout:传输超时,取消传输*/
 static void handle_timeout(struct usb_transfer *itransfer)
 {
 	struct libusb_transfer *transfer =
@@ -413,6 +413,9 @@ static void handle_timeout(struct usb_transfer *itransfer)
 			"async cancel failed %d errno=%d", r, errno);
 }
 
+/**
+ * handle_timeouts_locked:取消加入到传输队列中的超时的节点的数据传输
+ */
 static int handle_timeouts_locked(struct libusb_context *ctx)
 {
 	int r;
@@ -658,6 +661,9 @@ int  libusb_handle_events_locked(libusb_context *ctx,
 	return handle_events(ctx, &poll_timeout);
 }
 
+/**
+ * libusb_get_next_timeout:获得最近传输节点的超时时间
+ */
 int  libusb_get_next_timeout(libusb_context *ctx,
 	struct timeval *tv)
 {
@@ -704,6 +710,7 @@ int  libusb_get_next_timeout(libusb_context *ctx,
 	}
 	TIMESPEC_TO_TIMEVAL(&cur_tv, &cur_ts);
 
+	/*已经发生超时*/
 	if (!timercmp(&cur_tv, next_timeout, <)) {
 		usb_dbg("first timeout already expired");
 		timerclear(tv);

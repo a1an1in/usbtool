@@ -5,7 +5,8 @@
 #include <string.h>
 
 #include "config.h"
-#include "libusb.h"
+#include "common.h"
+#include "log.h"
 
 
 static void transfer_callback(struct libusb_transfer *transfer)
