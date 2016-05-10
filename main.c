@@ -70,7 +70,7 @@ int main(void)
 	}
 
 	r =find_my_device(0x1d57, 0xad0a);
-	//r =probe_device(0x1d57, 0xad0a);
+	/*r =probe_device(0x1d57, 0xad0a);*/
 	if (r < 0) {
 		fprintf(stderr, "Could not find/open device\n");
 		return r;
