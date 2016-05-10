@@ -1,3 +1,4 @@
+#makefile
 LD_FLAGS := -pthread
 CFLAGS += -g 
 source := $(notdir $(shell find . -name '*.c'))
